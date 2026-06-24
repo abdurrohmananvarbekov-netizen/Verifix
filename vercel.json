@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-proxy/:path*",
+      "destination": "https://app.verifix.com/:path*"
+    },
+    {
+      "source": "/oauth-token",
+      "destination": "https://app.verifix.com/security/oauth/token"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
+}
