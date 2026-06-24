@@ -1,4 +1,8 @@
 {
+  "framework": "vite",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api-proxy/:match*",
@@ -7,6 +11,10 @@
     {
       "source": "/oauth-token",
       "destination": "https://app.verifix.com/security/oauth/token"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
