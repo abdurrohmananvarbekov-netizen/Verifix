@@ -139,12 +139,13 @@ export default function App() {
   const [employees, setEmployees] = useState([]);
 
   // ─── Token management ─────────────────────────────────────────────────────
-  const CLIENT_ID     = 'C48A0648F8299A5C52E46873CCB209B1';
-  const CLIENT_SECRET = 'E0E15DD6A88E175F95A5D9264FC7D4E4875BEABDA1F1E51D3656545505D31AEF252B06AF7EB5665119594913537270594DA8AC43CA7B3671C8E2F1A0B761A104';
+  // Murodli Savdo (yoki yangi korxona) kalitlari:
+  const CLIENT_ID     = import.meta.env.VITE_CLIENT_ID || '85D661F8BD5A74003FC1F938387266D3';
+  const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET || '158B27DBE600131FED027B078324AB4A5FE23C4F8CA2EB3F0491A9EA8AF6E5481D9480B92E503B5F082495B255162B8E4AC44004FEAA02DC50E581133A69C9AE';
 
   // Token olish yoki keshdan qaytarish
   async function getAccessToken() {
-    const cached = JSON.parse(localStorage.getItem('verifix_token') || 'null');
+    const cached = JSON.parse(localStorage.getItem('verifix_token_v2') || 'null');
     // Token bor va hali 5 daqiqa muddati bor bo'lsa – uni ishlatamiz
     if (cached && Date.now() < cached.expiresAt - 5 * 60 * 1000) {
       return cached.token;
@@ -166,7 +167,7 @@ export default function App() {
 
     const data = await res.json();
     const expiresAt = Date.now() + data.expires_in * 1000; // 10800 sekund = 3 soat
-    localStorage.setItem('verifix_token', JSON.stringify({ token: data.access_token, expiresAt }));
+    localStorage.setItem('verifix_token_v2', JSON.stringify({ token: data.access_token, expiresAt }));
     console.log('Yangi token olindi, muddati:', new Date(expiresAt).toLocaleTimeString());
     return data.access_token;
   }
@@ -212,8 +213,10 @@ export default function App() {
               const outTime = (day && day.output_time) ? day.output_time.split(' ')[1].substring(0, 5) : '-';
 
               let status = 'absent';
-              if (inTime !== '-' && outTime !== '-') status = 'on_time';
-              else if (inTime !== '-' && outTime === '-') status = 'late';
+              if (inTime !== '-') {
+                const planIn = (day && day.begin_time) ? day.begin_time.split(' ')[1].substring(0, 5) : '09:00';
+                status = (inTime > planIn) ? 'late' : 'on_time';
+              }
 
               return {
                 id:       emp.staff_id || index + 1,
@@ -230,7 +233,7 @@ export default function App() {
 
         } else if (response.status === 401) {
           // Token eskirgan bo'lsa – keshni o'chirib qayta urinamiz
-          localStorage.removeItem('verifix_token');
+          localStorage.removeItem('verifix_token_v2');
           console.warn('Token eskirgan, qayta token olinmoqda...');
           await fetchTimesheet();
         } else {
