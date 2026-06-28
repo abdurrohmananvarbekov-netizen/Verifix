@@ -460,10 +460,10 @@ export default function App() {
             </button>
             <button
               className={`filter-btn ${filter === 'day_off' ? 'active' : ''}`}
-              style={filter === 'day_off' ? { backgroundColor: 'rgba(156,163,175,0.2)', borderColor: 'rgba(156,163,175,0.4)', color: '#d1d5db' } : {}}
+              style={filter === 'day_off' ? { backgroundColor: 'rgba(56,189,248,0.2)', borderColor: 'rgba(56,189,248,0.4)', color: '#bae6fd' } : {}}
               onClick={() => handleFilter(filter === 'day_off' ? 'all' : 'day_off')}
             >
-              <span className="filter-dot" style={{ backgroundColor: '#9ca3af', boxShadow: '0 0 8px rgba(156,163,175,0.4)' }} />
+              <span className="filter-dot" style={{ backgroundColor: '#38bdf8', boxShadow: '0 0 8px rgba(56,189,248,0.4)' }} />
               Damdagilar
               <span className="filter-count">{employees.filter(e => e.status === 'day_off').length}</span>
             </button>
@@ -548,7 +548,7 @@ export default function App() {
                         <span className="badge badge-absent">Kelmagan</span>
                       )}
                       {emp.status === 'day_off' && (
-                        <span className="badge" style={{ backgroundColor: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', border: '1px solid rgba(156, 163, 175, 0.3)' }}>Dam kuni</span>
+                        <span className="badge" style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>Dam kuni</span>
                       )}
                     </td>
                   </tr>
