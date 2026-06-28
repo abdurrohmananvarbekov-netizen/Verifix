@@ -211,11 +211,20 @@ export default function App() {
               const day = (emp.days && emp.days.length > 0) ? emp.days[emp.days.length - 1] : null;
               const inTime  = (day && day.input_time)  ? day.input_time.split(' ')[1].substring(0, 5)  : '-';
               const outTime = (day && day.output_time) ? day.output_time.split(' ')[1].substring(0, 5) : '-';
+              const isWorkDay = (day && day.day_kind === 'W');
 
               let status = 'absent';
               if (inTime !== '-') {
-                const planIn = (day && day.begin_time) ? day.begin_time.split(' ')[1].substring(0, 5) : '09:00';
-                status = (inTime > planIn) ? 'late' : 'on_time';
+                if (!isWorkDay) {
+                  status = 'on_time';
+                } else {
+                  const planIn = (day && day.begin_time) ? day.begin_time.split(' ')[1].substring(0, 5) : '09:00';
+                  status = (inTime > planIn) ? 'late' : 'on_time';
+                }
+              } else {
+                if (day && day.day_kind && day.day_kind !== 'W') {
+                  status = 'day_off';
+                }
               }
 
               return {
@@ -449,6 +458,15 @@ export default function App() {
               Kelmaganlar
               <span className="filter-count">{employees.filter(e => e.status === 'absent').length}</span>
             </button>
+            <button
+              className={`filter-btn ${filter === 'day_off' ? 'active' : ''}`}
+              style={filter === 'day_off' ? { backgroundColor: 'rgba(156,163,175,0.2)', borderColor: 'rgba(156,163,175,0.4)', color: '#d1d5db' } : {}}
+              onClick={() => handleFilter(filter === 'day_off' ? 'all' : 'day_off')}
+            >
+              <span className="filter-dot" style={{ backgroundColor: '#9ca3af', boxShadow: '0 0 8px rgba(156,163,175,0.4)' }} />
+              Damdagilar
+              <span className="filter-count">{employees.filter(e => e.status === 'day_off').length}</span>
+            </button>
           </div>
         </div>
 
@@ -528,6 +546,9 @@ export default function App() {
                       )}
                       {emp.status === 'absent' && (
                         <span className="badge badge-absent">Kelmagan</span>
+                      )}
+                      {emp.status === 'day_off' && (
+                        <span className="badge" style={{ backgroundColor: 'rgba(156, 163, 175, 0.15)', color: '#9ca3af', border: '1px solid rgba(156, 163, 175, 0.3)' }}>Dam kuni</span>
                       )}
                     </td>
                   </tr>
