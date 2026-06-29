@@ -209,8 +209,16 @@ export default function App() {
           if (data && data.data) {
             apiEmployees = data.data.map((emp, index) => {
               const day = (emp.days && emp.days.length > 0) ? emp.days[emp.days.length - 1] : null;
-              const inTime  = (day && day.input_time)  ? day.input_time.split(' ')[1].substring(0, 5)  : '-';
-              const outTime = (day && day.output_time) ? day.output_time.split(' ')[1].substring(0, 5) : '-';
+              
+              const extractTime = (timeStr) => {
+                if (!timeStr || typeof timeStr !== 'string') return null;
+                const parts = timeStr.trim().split(' ');
+                const timePart = parts.length > 1 ? parts[1] : parts[0];
+                return timePart ? timePart.substring(0, 5) : null;
+              };
+
+              const inTime  = extractTime(day ? day.input_time : null) || '-';
+              const outTime = extractTime(day ? day.output_time : null) || '-';
               const isWorkDay = (day && day.day_kind === 'W');
 
               let status = 'absent';
@@ -218,7 +226,7 @@ export default function App() {
                 if (!isWorkDay) {
                   status = 'on_time';
                 } else {
-                  const planIn = (day && day.begin_time) ? day.begin_time.split(' ')[1].substring(0, 5) : '09:00';
+                  const planIn = extractTime(day ? day.begin_time : null) || '09:00';
                   status = (inTime > planIn) ? 'late' : 'on_time';
                 }
               } else {
