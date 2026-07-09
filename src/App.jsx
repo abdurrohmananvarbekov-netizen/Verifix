@@ -655,11 +655,10 @@ export default function App() {
               <span className="filter-count">{employees.filter(e => e.status === 'absent').length}</span>
             </button>
             <button
-              className={`filter-btn ${filter === 'day_off' ? 'active' : ''}`}
-              style={filter === 'day_off' ? { backgroundColor: 'rgba(56,189,248,0.2)', borderColor: 'rgba(56,189,248,0.4)', color: '#bae6fd' } : {}}
+              className={`filter-btn filter-dayoff ${filter === 'day_off' ? 'active' : ''}`}
               onClick={() => handleFilter(filter === 'day_off' ? 'all' : 'day_off')}
             >
-              <span className="filter-dot" style={{ backgroundColor: '#38bdf8', boxShadow: '0 0 8px rgba(56,189,248,0.4)' }} />
+              <span className="filter-dot dot-dayoff" />
               Damdagilar
               <span className="filter-count">{employees.filter(e => e.status === 'day_off').length}</span>
             </button>
@@ -693,7 +692,7 @@ export default function App() {
                     <span className="th-inner" style={{ justifyContent: 'center', gap: 8 }}>
                       Ishlanmagan
                       <button
-                        className={`sort-time-btn ${sortByMissed ? 'active' : ''}`}
+                        className={`sort-time-btn sort-missed-btn ${sortByMissed ? 'active' : ''}`}
                         onClick={() => { setSortByMissed(s => !s); setSortByTime(false); setPage(1); }}
                         title="Ishlanmagan vaqt bo'yicha saralash"
                       >
@@ -710,9 +709,9 @@ export default function App() {
                 {visible.map((emp, idx) => {
                   let rowBg = 'transparent';
                   if (emp.status === 'late') {
-                    rowBg = 'rgba(245, 158, 11, 0.2)';
+                    rowBg = theme === 'dark' ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7';
                   } else if (emp.status === 'absent') {
-                    rowBg = 'rgba(239, 68, 68, 0.2)';
+                    rowBg = theme === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FA4848';
                   } else if (emp.status === 'day_off') {
                     rowBg = 'rgba(56, 189, 248, 0.2)';
                   }
