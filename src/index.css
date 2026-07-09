@@ -19,6 +19,7 @@
   --shadow-nav:   0 1px 0 rgba(0,0,0,0.06);
   --th-bg:        rgba(241,245,249,0.9);
   --row-hover:    rgba(99,102,241,0.04);
+  --cal-bg:       #ffffff;
 }
 
 :root.dark {
@@ -35,6 +36,7 @@
   --shadow-nav:   0 1px 0 rgba(255,255,255,0.05);
   --th-bg:        rgba(20,24,40,0.95);
   --row-hover:    rgba(99,102,241,0.07);
+  --cal-bg:       #13151f;
 }
 
 /* ─── BASE ───────────────────────────────────────────── */
@@ -257,6 +259,126 @@ body {
   100% { transform: rotateX(0deg); filter: brightness(1); }
 }
 
+
+/* ─── NAV CALENDAR BUTTON ────────────────────────────── */
+.nav-cal-wrap { position: relative; }
+
+.nav-cal-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-soft);
+  background: var(--glass-bg);
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.nav-cal-btn:hover,
+.nav-cal-btn.active {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: rgba(99,102,241,0.08);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+
+/* ─── CALENDAR POPUP ─────────────────────────────────── */
+.cal-popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 9999;
+  width: 280px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border-soft);
+  background: var(--cal-bg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.15);
+  animation: calIn 0.18s ease;
+}
+@keyframes calIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cal-month-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: 0.02em;
+}
+.cal-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.cal-nav-btn:hover { background: rgba(99,102,241,0.1); color: #6366f1; }
+.cal-nav-disabled { opacity: 0.3; cursor: default; }
+.cal-nav-disabled:hover { background: transparent; color: var(--text-2); }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-day-name {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 4px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.cal-day:hover:not(:disabled) {
+  background: rgba(99,102,241,0.12);
+  color: #6366f1;
+}
+.cal-today {
+  font-weight: 700;
+  color: #6366f1;
+  background: rgba(99,102,241,0.08);
+}
+.cal-selected {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.35);
+}
+.cal-future {
+  opacity: 0.25;
+  cursor: default;
+}
 
 /* ─── THEME TOGGLE ───────────────────────────────────── */
 .theme-toggle {
@@ -549,8 +671,34 @@ body {
 }
 
 .th-emp    { text-align: left; }
-.th-time   { text-align: right; }
+.th-time   { text-align: center; }
+.th-sort-col { text-align: center; width: 100px; }
 .th-status { text-align: right; padding-right: 28px; }
+
+.sort-time-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-soft);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.sort-time-btn:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: rgba(99,102,241,0.07);
+}
+.sort-time-btn.active {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: rgba(99,102,241,0.12);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
 
 .th-inner {
   display: inline-flex;
@@ -575,7 +723,7 @@ body {
 .emp-table td { padding: 14px 20px; vertical-align: middle; }
 
 .td-emp    { text-align: left;  }
-.td-time   { text-align: right; white-space: nowrap; }
+.td-time   { text-align: center; white-space: nowrap; }
 .td-status { text-align: right; padding-right: 24px; white-space: nowrap; }
 
 /* ─── EMPLOYEE INFO ──────────────────────────────────── */

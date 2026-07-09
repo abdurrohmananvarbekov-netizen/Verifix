@@ -63,7 +63,7 @@ function ChevronRight() {
   );
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 50;
 
 /* ── Flip Clock ───────────────────────────────────────── */
 function FlipCard({ digit }) {
@@ -127,13 +127,120 @@ function FlipClock({ time }) {
   );
 }
 
+const MONTHS_UZ = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+const DAYS_UZ   = ['Du','Se','Ch','Pa','Ju','Sh','Ya'];
+
+function DatePickerPopup({ value, onChange, onClose }) {
+  const [year, month] = value ? value.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
+  const [viewYear, setViewYear] = useState(year);
+  const [viewMonth, setViewMonth] = useState(month);
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  const firstDay = new Date(viewYear, viewMonth - 1, 1).getDay(); // 0=Sun
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1; // make Mon=0
+  const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const prevMonth = () => {
+    if (viewMonth === 1) { setViewYear(y => y - 1); setViewMonth(12); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth() + 1;
+    if (isCurrentMonth) return;
+    if (viewMonth === 12) { setViewYear(y => y + 1); setViewMonth(1); }
+    else setViewMonth(m => m + 1);
+  };
+  const isNextDisabled = viewYear === today.getFullYear() && viewMonth === today.getMonth() + 1;
+
+  const selectDay = (d) => {
+    if (!d) return;
+    const ds = `${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (ds > todayStr) return;
+    onChange(ds);
+    onClose();
+  };
+
+  return (
+    <div className="cal-popup">
+      <div className="cal-header">
+        <button className="cal-nav-btn" onClick={prevMonth}><ChevronLeft /></button>
+        <span className="cal-month-label">{MONTHS_UZ[viewMonth - 1]} {viewYear}</span>
+        <button className={`cal-nav-btn ${isNextDisabled ? 'cal-nav-disabled' : ''}`} onClick={nextMonth} disabled={isNextDisabled}><ChevronRight /></button>
+      </div>
+      <div className="cal-grid">
+        {DAYS_UZ.map(d => <div key={d} className="cal-day-name">{d}</div>)}
+        {cells.map((d, i) => {
+          if (!d) return <div key={`e${i}`} />;
+          const ds = `${viewYear}-${String(viewMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const isFuture  = ds > todayStr;
+          const isToday   = ds === todayStr;
+          const isSelected= ds === value;
+          return (
+            <button
+              key={d}
+              className={`cal-day ${isToday ? 'cal-today' : ''} ${isSelected ? 'cal-selected' : ''} ${isFuture ? 'cal-future' : ''}`}
+              onClick={() => selectDay(d)}
+              disabled={isFuture}
+            >{d}</button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function NavDatePicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div className="nav-cal-wrap" ref={ref} style={{ position: 'relative' }}>
+      <button
+        className={`nav-cal-btn ${open ? 'active' : ''}`}
+        onClick={() => setOpen(o => !o)}
+        aria-label="Sana tanlash"
+        title={value}
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </button>
+      {open && (
+        <DatePickerPopup
+          value={value}
+          onChange={onChange}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function App() {
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [time, setTime]   = useState(new Date());
   const [page, setPage]   = useState(1);
-  const [filter, setFilter] = useState('all'); // 'all' | 'late' | 'absent'
+  const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  });
 
   // API dan kelgan ma'lumotlarni saqlash uchun state
   const [employees, setEmployees] = useState([]);
@@ -176,10 +283,8 @@ export default function App() {
   useEffect(() => {
     async function fetchTimesheet() {
       try {
-        const today = new Date();
-        const dd = String(today.getDate()).padStart(2, '0');
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const formattedDate = `${dd}.${mm}.${today.getFullYear()}`;
+        const [year, month, day] = selectedDate.split('-');
+        const formattedDate = `${day}.${month}.${year}`;
 
         // Avval token olamiz (keshdan yoki API dan)
         const token = await getAccessToken();
@@ -217,6 +322,16 @@ export default function App() {
                 return timePart ? timePart.substring(0, 5) : null;
               };
 
+              const formatName = (fullName) => {
+                if (!fullName || typeof fullName !== 'string') return "Noma'lum xodim";
+                const parts = fullName.trim().split(/\s+/);
+                const formatPart = (p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+                const first = parts[0] ? formatPart(parts[0]) : '';
+                const second = parts[1] ? formatPart(parts[1]) : '';
+                if (first && second) return `${first} ${second}`;
+                return first || "Noma'lum xodim";
+              };
+
               const inTime  = extractTime(day ? day.input_time : null) || '-';
               const outTime = extractTime(day ? day.output_time : null) || '-';
               const isWorkDay = (day && day.day_kind === 'W');
@@ -235,13 +350,48 @@ export default function App() {
                 }
               }
 
+              const timeToMinutes = (t) => {
+                if (!t || t === '-') return 0;
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + m;
+              };
+
+              const planIn = extractTime(day ? day.begin_time : null) || '09:00';
+              const planOut = extractTime(day ? day.end_time : null) || '18:00';
+              const planInMins = timeToMinutes(planIn);
+              const planOutMins = timeToMinutes(planOut);
+              const inMins = inTime !== '-' ? timeToMinutes(inTime) : planInMins;
+              const outMins = outTime !== '-' ? timeToMinutes(outTime) : planOutMins;
+
+              let missedMins = 0;
+              if (status === 'late' || status === 'on_time') {
+                // Kech kelish vaqti
+                if (inTime !== '-' && inMins > planInMins) {
+                  missedMins += inMins - planInMins;
+                }
+                // Erta ketish vaqti
+                if (outTime !== '-' && outMins < planOutMins) {
+                  missedMins += planOutMins - outMins;
+                }
+              }
+
+              const formatMissedTime = (mins) => {
+                if (!mins || mins <= 0) return '';
+                const h = Math.floor(mins / 60);
+                const m = mins % 60;
+                if (h > 0 && m > 0) return `${h}h ${m}min`;
+                if (h > 0) return `${h}h`;
+                return `${m}min`;
+              };
+
               return {
                 id:       emp.staff_id || index + 1,
-                name:     emp.employee_name || "Noma'lum xodim",
+                name:     formatName(emp.employee_name),
                 role:     emp.job_name || '-',
                 checkIn:  inTime,
                 checkOut: outTime,
-                status:   status
+                status:   status,
+                missed:   formatMissedTime(missedMins)
               };
             });
           }
@@ -268,7 +418,7 @@ export default function App() {
     // Har 3 soatda avtomatik ma'lumotlarni yangilash
     const refreshInterval = setInterval(fetchTimesheet, 3 * 60 * 60 * 1000);
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [selectedDate]);
 
   const handleFilter = (val) => {
     setFilter(val);
@@ -291,15 +441,41 @@ export default function App() {
   const fmtDate = (d) =>
     d.toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+  const [sortByTime, setSortByTime] = useState(false);
+  const [sortByMissed, setSortByMissed] = useState(false);
+
+  const timeToMins = (t) => {
+    if (!t || t === '-') return 9999;
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const missedToMins = (missed) => {
+    if (!missed) return 0;
+    let total = 0;
+    const hMatch = missed.match(/(\d+)h/);
+    const mMatch = missed.match(/(\d+)min/);
+    if (hMatch) total += parseInt(hMatch[1]) * 60;
+    if (mMatch) total += parseInt(mMatch[1]);
+    return total;
+  };
+
   const filtered = employees.filter(e => {
     const matchesFilter = filter === 'all' || e.status === filter;
-    const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           e.role.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+
+  const sorted = sortByMissed
+    ? [...filtered].sort((a, b) => missedToMins(b.missed) - missedToMins(a.missed))
+    : sortByTime
+      ? [...filtered].sort((a, b) => timeToMins(a.checkIn) - timeToMins(b.checkIn))
+      : filtered;
+
+  const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE) || 1;
   const start      = (page - 1) * ITEMS_PER_PAGE;
-  const visible    = filtered.slice(start, start + ITEMS_PER_PAGE);
+  const visible    = sorted.slice(start, start + ITEMS_PER_PAGE);
 
   const stats = {
     total:   employees.length,
@@ -321,7 +497,7 @@ export default function App() {
           position: 'fixed', inset: 0, zIndex: 9999,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          background: 'radial-gradient(ellipse at center, #0d0d1a 0%, #060610 100%)',
+          background: theme === 'light' ? 'radial-gradient(ellipse at center, #f8fafc 0%, #e2e8f0 100%)' : 'radial-gradient(ellipse at center, #0d0d1a 0%, #060610 100%)',
         }}>
           <style>{`
             @keyframes ring-spin-1 { to { transform: rotate(360deg); } }
@@ -375,7 +551,7 @@ export default function App() {
 
           {/* Matn */}
           <p style={{
-            color: '#a5b4fc', marginTop: 28, fontSize: 14,
+            color: theme === 'light' ? '#4f46e5' : '#a5b4fc', marginTop: 28, fontSize: 14,
             letterSpacing: 2, fontWeight: 500, textTransform: 'uppercase',
             animation: 'fade-in-up 0.6s ease both'
           }}>
@@ -419,7 +595,8 @@ export default function App() {
         </div>
 
         <div className="nav-right">
-          <FlipClock time={time} />
+          {/* Custom Calendar */}
+          <NavDatePicker value={selectedDate} onChange={(d) => { setSelectedDate(d); setPage(1); setLoading(true); }} />
           <button
             className={`theme-toggle ${theme}`}
             onClick={() => setTheme(p => p === 'dark' ? 'light' : 'dark')}
@@ -436,8 +613,19 @@ export default function App() {
         {/* Header */}
         <div className="page-header">
           <div className="header-text">
-            <h1 className="page-title">Bugungi Davomat</h1>
-            <p className="page-date">{fmtDate(time)}</p>
+            <h1 className="page-title">
+              {(() => {
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                return selectedDate === todayStr ? 'Bugungi Davomat' : 'Davomat';
+              })()}
+            </h1>
+            <p className="page-date">
+              {(() => {
+                const [y, m, d] = selectedDate.split('-').map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              })()}
+            </p>
           </div>
           <div className="filter-btns">
             <div className="search-box">
@@ -487,30 +675,53 @@ export default function App() {
                 <tr>
                   <th className="th-emp">Xodim</th>
                   <th className="th-time">
-                    <span className="th-inner">
-                      <ClockIcon /> Kelgan vaqti
+                    <span className="th-inner" style={{ justifyContent: 'center', gap: 8 }}>
+                      <ClockIcon /> Vaqti
+                      <button
+                        className={`sort-time-btn ${sortByTime ? 'active' : ''}`}
+                        onClick={() => { setSortByTime(s => !s); setSortByMissed(false); setPage(1); }}
+                        title="Kelish vaqti bo'yicha saralash"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 8h18M7 12h10M11 16h2"/>
+                        </svg>
+                        {sortByTime ? '↑' : '↕'}
+                      </button>
                     </span>
                   </th>
                   <th className="th-time">
-                    <span className="th-inner">
-                      <ClockIcon /> Ketgan vaqti
+                    <span className="th-inner" style={{ justifyContent: 'center', gap: 8 }}>
+                      Ishlanmagan
+                      <button
+                        className={`sort-time-btn ${sortByMissed ? 'active' : ''}`}
+                        onClick={() => { setSortByMissed(s => !s); setSortByTime(false); setPage(1); }}
+                        title="Ishlanmagan vaqt bo'yicha saralash"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 8h18M7 12h10M11 16h2"/>
+                        </svg>
+                        {sortByMissed ? '↓' : '↕'}
+                      </button>
                     </span>
                   </th>
-                  <th className="th-status">Holati</th>
                 </tr>
               </thead>
               <tbody>
-                {visible.map((emp, idx) => (
-                  <tr key={emp.id} className="emp-row" style={{ animationDelay: `${idx * 40}ms` }}>
+                {visible.map((emp, idx) => {
+                  let rowBg = 'transparent';
+                  if (emp.status === 'late') {
+                    rowBg = 'rgba(245, 158, 11, 0.2)';
+                  } else if (emp.status === 'absent') {
+                    rowBg = 'rgba(239, 68, 68, 0.2)';
+                  } else if (emp.status === 'day_off') {
+                    rowBg = 'rgba(56, 189, 248, 0.2)';
+                  }
+
+                  return (
+                  <tr key={emp.id} className="emp-row" style={{ animationDelay: `${idx * 40}ms`, background: rowBg }}>
                     {/* Employee info */}
                     <td className="td-emp">
                       <div className="emp-info">
-                        <div
-                          className="emp-avatar"
-                          style={{ background: `linear-gradient(135deg, ${getColor(emp.id)}cc, ${getColor(emp.id)}55)`, borderColor: `${getColor(emp.id)}44` }}
-                        >
-                          {emp.name.charAt(0)}
-                        </div>
                         <div>
                           <div className="emp-name">{emp.name}</div>
                           <div className="emp-role">{emp.role}</div>
@@ -518,49 +729,32 @@ export default function App() {
                       </div>
                     </td>
 
-                    {/* Check-in */}
+                    {/* Time */}
                     <td className="td-time">
-                      {emp.checkIn !== '-' ? (
-                        <div className="time-chip time-in">
-                          <span className="chip-dot dot-green" />
-                          <span className="chip-label">Keldi:</span>
-                          <span className="chip-time">{emp.checkIn}</span>
+                      {emp.checkIn !== '-' || emp.checkOut !== '-' ? (
+                        <div className="time-chip" style={{ justifyContent: 'center', gap: 4 }}>
+                          <span className="chip-time">{emp.checkIn !== '-' ? emp.checkIn : '--:--'}</span>
+                          <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>
+                          <span className="chip-time" style={{ opacity: emp.checkOut !== '-' ? 1 : 0.4 }}>{emp.checkOut !== '-' ? emp.checkOut : '--:--'}</span>
                         </div>
                       ) : (
                         <span className="no-data">—</span>
                       )}
                     </td>
 
-                    {/* Check-out */}
+                    {/* Missed Time */}
                     <td className="td-time">
-                      {emp.checkOut !== '-' ? (
-                        <div className="time-chip time-out">
-                          <span className="chip-dot dot-blue" />
-                          <span className="chip-label">Ketdi:</span>
-                          <span className="chip-time">{emp.checkOut}</span>
-                        </div>
+                      {emp.missed ? (
+                        <span style={{ color: '#ef4444', fontWeight: 600, fontSize: 13, background: 'rgba(239, 68, 68, 0.1)', padding: '4px 10px', borderRadius: 6, display: 'inline-block' }}>
+                          {emp.missed}
+                        </span>
                       ) : (
-                        <span className="no-data">—</span>
-                      )}
-                    </td>
-
-                    {/* Status */}
-                    <td className="td-status">
-                      {emp.status === 'on_time' && (
-                        <span className="badge badge-on-time">O'z vaqtida</span>
-                      )}
-                      {emp.status === 'late' && (
-                        <span className="badge badge-late">Kechikkan</span>
-                      )}
-                      {emp.status === 'absent' && (
-                        <span className="badge badge-absent">Kelmagan</span>
-                      )}
-                      {emp.status === 'day_off' && (
-                        <span className="badge" style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}>Dam kuni</span>
+                        <span className="no-data" style={{ opacity: 0.5 }}>—</span>
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

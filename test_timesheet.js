@@ -33,10 +33,10 @@ async function fetchTimesheet() {
         console.log(`Found ${data.data?.length || 0} employees.`);
         
         if (data.data?.length > 0) {
-            const sample = data.data.slice(0, 5).map(e => ({
-                name: e.employee_name,
-                days: e.days
-            }));
+            const sample = data.data[0]; //
+                
+                
+            
             console.log(JSON.stringify(sample, null, 2));
         }
     } catch (e) {
