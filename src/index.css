@@ -588,6 +588,25 @@ body {
 }
 :root.dark .filter-absent.active .filter-count { color: #f87171; }
 
+.missed-badge {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 13px;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.missed-badge.absent {
+  background: rgba(255, 255, 255, 0.65);
+  color: #dc2626;
+}
+:root.dark .missed-badge.absent {
+  background: rgba(0, 0, 0, 0.25);
+  color: #f87171;
+}
+
 .filter-dayoff.active {
   background: rgba(56,189,248,0.12);
   border-color: rgba(56,189,248,0.35);
@@ -666,6 +685,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   min-width: 640px;
+  table-layout: fixed;
 }
 
 .emp-table thead tr {
@@ -683,16 +703,17 @@ body {
   white-space: nowrap;
 }
 
-.th-emp    { text-align: left; }
-.th-time   { text-align: center; }
-.th-sort-col { text-align: center; width: 100px; }
+.th-emp    { text-align: left; width: 50%; }
+.th-time   { text-align: center; width: 25%; }
 .th-status { text-align: right; padding-right: 28px; }
 
 .sort-time-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  padding: 4px 8px;
+  width: 42px;
+  padding: 4px 0;
   border-radius: 6px;
   border: 1.5px solid var(--border-soft);
   background: transparent;
@@ -818,11 +839,11 @@ body {
   color: var(--text-2);
 }
 .chip-time {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-1);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 .time-in .chip-time  { color: #16a34a; }
 .time-out .chip-time { color: #2563eb; }

@@ -336,20 +336,6 @@ export default function App() {
               const outTime = extractTime(day ? day.output_time : null) || '-';
               const isWorkDay = (day && day.day_kind === 'W');
 
-              let status = 'absent';
-              if (inTime !== '-') {
-                if (!isWorkDay) {
-                  status = 'on_time';
-                } else {
-                  const planIn = extractTime(day ? day.begin_time : null) || '09:00';
-                  status = (inTime > planIn) ? 'late' : 'on_time';
-                }
-              } else {
-                if (day && day.day_kind && day.day_kind !== 'W') {
-                  status = 'day_off';
-                }
-              }
-
               const timeToMinutes = (t) => {
                 if (!t || t === '-') return 0;
                 const [h, m] = t.split(':').map(Number);
@@ -363,11 +349,27 @@ export default function App() {
               const inMins = inTime !== '-' ? timeToMinutes(inTime) : planInMins;
               const outMins = outTime !== '-' ? timeToMinutes(outTime) : planOutMins;
 
+              let status = 'absent';
+              if (inTime !== '-') {
+                if (!isWorkDay) {
+                  status = 'on_time';
+                } else {
+                  // 5 daqiqalik "grace period" - 5 daqiqagacha kechikish hisobga olinmaydi
+                  status = (inMins > planInMins + 5) ? 'late' : 'on_time';
+                }
+              } else {
+                if (day && day.day_kind && day.day_kind !== 'W') {
+                  status = 'day_off';
+                }
+              }
+
               let missedMins = 0;
-              if (status === 'late' || status === 'on_time') {
-                // Kech kelish vaqti
-                if (inTime !== '-' && inMins > planInMins) {
-                  missedMins += inMins - planInMins;
+              if (status === 'absent') {
+                missedMins = planOutMins - planInMins;
+              } else if (status === 'late' || status === 'on_time') {
+                // Kech kelish vaqti - 5 daqiqa doim kechirib yuboriladi
+                if (inTime !== '-' && inMins > planInMins + 5) {
+                  missedMins += inMins - (planInMins + 5);
                 }
                 // Erta ketish vaqti
                 if (outTime !== '-' && outMins < planOutMins) {
@@ -391,7 +393,10 @@ export default function App() {
                 checkIn:  inTime,
                 checkOut: outTime,
                 status:   status,
-                missed:   formatMissedTime(missedMins)
+                missed:   formatMissedTime(missedMins),
+                dayKind:  day ? day.day_kind : null,
+                requestType: day ? day.request_type : null,
+                accrualKind: day ? day.accrual_kind : null
               };
             });
           }
@@ -470,7 +475,7 @@ export default function App() {
   const sorted = sortByMissed
     ? [...filtered].sort((a, b) => missedToMins(b.missed) - missedToMins(a.missed))
     : sortByTime
-      ? [...filtered].sort((a, b) => timeToMins(a.checkIn) - timeToMins(b.checkIn))
+      ? [...filtered].sort((a, b) => timeToMins(b.checkIn) - timeToMins(a.checkIn))
       : filtered;
 
   const totalPages = Math.ceil(sorted.length / ITEMS_PER_PAGE) || 1;
@@ -674,7 +679,7 @@ export default function App() {
                 <tr>
                   <th className="th-emp">Xodim</th>
                   <th className="th-time">
-                    <span className="th-inner" style={{ justifyContent: 'center', gap: 8 }}>
+                    <span className="th-inner" style={{ justifyContent: 'center', gap: 8, paddingLeft: '24px' }}>
                       <ClockIcon /> Vaqti
                       <button
                         className={`sort-time-btn ${sortByTime ? 'active' : ''}`}
@@ -684,12 +689,12 @@ export default function App() {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M3 8h18M7 12h10M11 16h2"/>
                         </svg>
-                        {sortByTime ? '↑' : '↕'}
+                        {sortByTime ? '↓' : '↕'}
                       </button>
                     </span>
                   </th>
                   <th className="th-time">
-                    <span className="th-inner" style={{ justifyContent: 'center', gap: 8 }}>
+                    <span className="th-inner" style={{ justifyContent: 'center', gap: 8, paddingLeft: '24px' }}>
                       Ishlanmagan
                       <button
                         className={`sort-time-btn sort-missed-btn ${sortByMissed ? 'active' : ''}`}
@@ -722,7 +727,33 @@ export default function App() {
                     <td className="td-emp">
                       <div className="emp-info">
                         <div>
-                          <div className="emp-name">{emp.name}</div>
+                          <div className="emp-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {emp.name}
+                            
+                            {emp.requestType === 'P' && <span style={{ fontSize: 11, color: '#059669', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>Qisman ruxsat (P)</span>}
+                            {emp.requestType === 'F' && <span style={{ fontSize: 11, color: '#059669', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>To'liq ruxsat (F)</span>}
+                            {emp.requestType === 'M' && <span style={{ fontSize: 11, color: '#059669', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>Ko'p kunlik (M)</span>}
+                            
+                            {emp.accrualKind === 'C' && <span style={{ fontSize: 11, color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>Ko'chirilgan limit (C)</span>}
+                            {emp.accrualKind === 'P' && <span style={{ fontSize: 11, color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>Rejadagi limit (P)</span>}
+                            {emp.accrualKind === 'U' && <span style={{ fontSize: 11, color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>Yig'ilgan limit (U)</span>}
+
+                            {emp.status === 'absent' && !emp.requestType && (
+                              <span style={{ fontSize: 11, color: '#dc2626', background: 'rgba(255, 255, 255, 0.65)', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Sababsiz</span>
+                            )}
+                            {emp.status === 'day_off' && !emp.requestType && (
+                              <span style={{ fontSize: 11, color: 'var(--text-1)', background: 'rgba(56, 189, 248, 0.15)', padding: '2px 6px', borderRadius: 4, fontWeight: 500 }}>
+                                {emp.dayKind === 'R' ? 'Dam olish kuni' :
+                                 emp.dayKind === 'A' ? "Qo'shimcha dam olish" :
+                                 emp.dayKind === 'H' ? 'Bayram kuni' :
+                                 emp.dayKind === 'N' ? 'Ishlamaydigan kun' :
+                                 emp.dayKind === 'V' ? "Ta'til" :
+                                 emp.dayKind === 'S' ? 'Kasallik' :
+                                 emp.dayKind === 'T' ? 'Xizmat safari' :
+                                 emp.dayKind ? `Dam olish (${emp.dayKind})` : 'Dam olish'}
+                              </span>
+                            )}
+                          </div>
                           <div className="emp-role">{emp.role}</div>
                         </div>
                       </div>
@@ -744,7 +775,7 @@ export default function App() {
                     {/* Missed Time */}
                     <td className="td-time">
                       {emp.missed ? (
-                        <span style={{ color: '#ef4444', fontWeight: 600, fontSize: 13, background: 'rgba(239, 68, 68, 0.1)', padding: '4px 10px', borderRadius: 6, display: 'inline-block' }}>
+                        <span className={`missed-badge ${emp.status === 'absent' ? 'absent' : ''}`}>
                           {emp.missed}
                         </span>
                       ) : (
